@@ -3,15 +3,12 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { generateRoomCode } from '@/lib/game-logic';
 
-export async function createRoom(displayName: string): Promise<{ roomCode: string; userId: string; error?: string }> {
+export async function createRoom(displayName: string, userId: string): Promise<{ roomCode: string; userId: string; error?: string }> {
   const supabase = createServerClient();
   
-  const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-  if (authError || !authData.user) {
-    return { roomCode: '', userId: '', error: 'Auth failed: ' + authError?.message };
+  if (!userId) {
+    return { roomCode: '', userId: '', error: 'Missing user ID' };
   }
-  
-  const userId = authData.user.id;
   
   let code = '';
   let attempts = 0;
@@ -43,15 +40,12 @@ export async function createRoom(displayName: string): Promise<{ roomCode: strin
   return { roomCode: code, userId };
 }
 
-export async function joinRoom(code: string, displayName: string): Promise<{ roomId: string; userId: string; error?: string }> {
+export async function joinRoom(code: string, displayName: string, userId: string): Promise<{ roomId: string; userId: string; error?: string }> {
   const supabase = createServerClient();
   
-  const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-  if (authError || !authData.user) {
-    return { roomId: '', userId: '', error: 'Auth failed' };
+  if (!userId) {
+    return { roomId: '', userId: '', error: 'Missing user ID' };
   }
-  
-  const userId = authData.user.id;
   
   const { data: room, error: roomError } = await supabase
     .from('rooms')

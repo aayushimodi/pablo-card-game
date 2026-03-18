@@ -48,3 +48,21 @@ CREATE TABLE player_hands (
   cards JSONB NOT NULL DEFAULT '[]',
   UNIQUE(game_state_id, user_id)
 );
+
+-- Enable RLS
+ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_players ENABLE ROW LEVEL SECURITY;
+ALTER TABLE game_states ENABLE ROW LEVEL SECURITY;
+ALTER TABLE player_hands ENABLE ROW LEVEL SECURITY;
+
+-- Allow anon + authenticated (no Supabase Auth required)
+CREATE POLICY "allow_all_rooms" ON rooms FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "allow_all_room_players" ON room_players FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "allow_all_game_states" ON game_states FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "allow_all_player_hands" ON player_hands FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+-- Enable Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE rooms;
+ALTER PUBLICATION supabase_realtime ADD TABLE room_players;
+ALTER PUBLICATION supabase_realtime ADD TABLE game_states;
+ALTER PUBLICATION supabase_realtime ADD TABLE player_hands;

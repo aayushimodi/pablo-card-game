@@ -17,7 +17,12 @@ export default function Home() {
     setLoading(true);
     setError('');
     try {
-      const result = await createRoom(displayName.trim());
+      let userId = localStorage.getItem('pablo_user_id');
+      if (!userId) {
+        userId = crypto.randomUUID();
+        localStorage.setItem('pablo_user_id', userId);
+      }
+      const result = await createRoom(displayName.trim(), userId);
       if (result.error) {
         setError(result.error);
       } else {
@@ -38,7 +43,12 @@ export default function Home() {
     setLoading(true);
     setError('');
     try {
-      const result = await joinRoom(roomCode.trim(), displayName.trim());
+      let userId = localStorage.getItem('pablo_user_id');
+      if (!userId) {
+        userId = crypto.randomUUID();
+        localStorage.setItem('pablo_user_id', userId);
+      }
+      const result = await joinRoom(roomCode.trim(), displayName.trim(), userId);
       if (result.error) {
         setError(result.error);
       } else {
