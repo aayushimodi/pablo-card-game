@@ -111,7 +111,7 @@ export default function GameTable({
             {me?.display_name ?? 'You'} (you){me && me.wins > 0 ? ` 🏆${me.wins}` : ''}{me?.user_id === currentPlayerId ? ' 🎯' : ''}
           </div>
           {gameState.stack_open && (
-            <p className="text-orange-300 text-xs animate-pulse">⚡ Double-click a card to stack!</p>
+            <p className="text-green-500 text-xs">Double-click a card to stack</p>
           )}
           <PlayerGrid
             cards={myCards}
@@ -120,7 +120,6 @@ export default function GameTable({
             onCardClick={onCardClick ? (i) => onCardClick(userId, i) : undefined}
             onCardDoubleClick={onCardDoubleClick}
             selectedCard={selectedCard?.playerId === userId ? selectedCard.cardIndex : undefined}
-            stackOpen={gameState.stack_open}
             revealAll={revealAll}
             size="md"
           />

@@ -243,20 +243,30 @@ export async function discardDrawnCard(gameStateId: string, userId: string): Pro
   
   const discard_pile = [...(gs.discard_pile as Card[]), { ...drawnCard, face_up: true }];
   
-  let turn_phase = 'post_action';
+  let turn_phase = '';
   if (drawnCard.value === 7) turn_phase = 'special_7';
   else if (drawnCard.value === 8) turn_phase = 'special_8_pick';
   else if (drawnCard.value === 9) turn_phase = 'special_9_pick1';
   
   const isSpecialCard = isSpecial(drawnCard);
   
-  await supabase.from('game_states').update({
-    discard_pile,
-    drawn_card: null,
-    turn_phase,
-    stack_open: !isSpecialCard,
-    updated_at: new Date().toISOString(),
-  }).eq('id', gameStateId);
+  if (isSpecialCard) {
+    await supabase.from('game_states').update({
+      discard_pile,
+      drawn_card: null,
+      turn_phase,
+      stack_open: false,
+      updated_at: new Date().toISOString(),
+    }).eq('id', gameStateId);
+  } else {
+    await supabase.from('game_states').update({
+      discard_pile,
+      drawn_card: null,
+      stack_open: true,
+      updated_at: new Date().toISOString(),
+    }).eq('id', gameStateId);
+    await advanceTurn(supabase, { ...gs, discard_pile, drawn_card: null, stack_open: true });
+  }
   
   return {};
 }
@@ -291,23 +301,36 @@ export async function swapCard(gameStateId: string, userId: string, cardIndex: n
   
   const discard_pile = [...(gs.discard_pile as Card[]), { ...oldCard, face_up: true }];
   
-  let turn_phase = 'post_action';
+  let turn_phase = '';
   if (oldCard.value === 7) turn_phase = 'special_7';
   else if (oldCard.value === 8) turn_phase = 'special_8_pick';
   else if (oldCard.value === 9) turn_phase = 'special_9_pick1';
   
   const isSpecialCard = isSpecial(oldCard);
   
-  await Promise.all([
-    supabase.from('player_hands').update({ cards }).eq('id', hand.id),
-    supabase.from('game_states').update({
-      discard_pile,
-      drawn_card: null,
-      turn_phase,
-      stack_open: !isSpecialCard,
-      updated_at: new Date().toISOString(),
-    }).eq('id', gameStateId),
-  ]);
+  if (isSpecialCard) {
+    await Promise.all([
+      supabase.from('player_hands').update({ cards }).eq('id', hand.id),
+      supabase.from('game_states').update({
+        discard_pile,
+        drawn_card: null,
+        turn_phase,
+        stack_open: false,
+        updated_at: new Date().toISOString(),
+      }).eq('id', gameStateId),
+    ]);
+  } else {
+    await Promise.all([
+      supabase.from('player_hands').update({ cards }).eq('id', hand.id),
+      supabase.from('game_states').update({
+        discard_pile,
+        drawn_card: null,
+        stack_open: true,
+        updated_at: new Date().toISOString(),
+      }).eq('id', gameStateId),
+    ]);
+    await advanceTurn(supabase, { ...gs, discard_pile, drawn_card: null, stack_open: true });
+  }
   
   return {};
 }
@@ -334,10 +357,10 @@ export async function useSpecial7(gameStateId: string, userId: string, cardIndex
   const card = cards[cardIndex];
   
   await supabase.from('game_states').update({
-    turn_phase: 'post_action',
     stack_open: true,
     updated_at: new Date().toISOString(),
   }).eq('id', gameStateId);
+  await advanceTurn(supabase, { ...gs, stack_open: true });
   
   return { card };
 }
@@ -364,10 +387,10 @@ export async function pickSpecial8Target(gameStateId: string, userId: string, ta
   const card = cards[cardIndex];
   
   await supabase.from('game_states').update({
-    turn_phase: 'post_action',
     stack_open: true,
     updated_at: new Date().toISOString(),
   }).eq('id', gameStateId);
+  await advanceTurn(supabase, { ...gs, stack_open: true });
   
   return { card };
 }
@@ -421,12 +444,12 @@ export async function pickSpecial9Second(gameStateId: string, userId: string, ta
     supabase.from('player_hands').update({ cards: cards1 }).eq('id', hand1.id),
     supabase.from('player_hands').update({ cards: cards2 }).eq('id', hand2.id),
     supabase.from('game_states').update({
-      turn_phase: 'post_action',
       special_9_first_pick: null,
       stack_open: true,
       updated_at: new Date().toISOString(),
     }).eq('id', gameStateId),
   ]);
+  await advanceTurn(supabase, { ...gs, special_9_first_pick: null, stack_open: true });
   
   return {};
 }
@@ -551,7 +574,7 @@ export async function callPablo(gameStateId: string, userId: string): Promise<{ 
   const { data: gs } = await supabase.from('game_states').select('*').eq('id', gameStateId).single();
   if (!gs) return { error: 'Game not found' };
   if ((gs.players_order as string[])[gs.current_player_index] !== userId) return { error: 'Not your turn' };
-  if (gs.turn_phase !== 'post_action') return { error: 'Cannot call Pablo now' };
+  if (gs.turn_phase !== 'await_draw') return { error: 'Cannot call Pablo now' };
   
   const players_order = gs.players_order as string[];
   const last_round_remaining = players_order.filter((id: string) => id !== userId);

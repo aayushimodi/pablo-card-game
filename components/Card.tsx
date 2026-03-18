@@ -8,7 +8,6 @@ interface CardProps {
   onClick?: () => void;
   onDoubleClick?: () => void;
   selected?: boolean;
-  stackable?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -39,7 +38,6 @@ export default function CardComponent({
   onClick,
   onDoubleClick,
   selected,
-  stackable,
   size = 'md',
   className = '',
 }: CardProps) {
@@ -65,8 +63,6 @@ export default function CardComponent({
 
   const borderClass = selected
     ? 'border-yellow-400 shadow-yellow-400 shadow-lg'
-    : stackable
-    ? 'border-orange-400 shadow-orange-400 shadow-md animate-pulse'
     : 'border-gray-300';
 
   if (!showFace) {
@@ -77,7 +73,6 @@ export default function CardComponent({
         onDoubleClick={onDoubleClick}
         className={`rounded-lg bg-blue-900 border-2 ${
           selected ? 'border-yellow-400 shadow-yellow-400 shadow-lg'
-          : stackable ? 'border-orange-400 shadow-orange-400 shadow-md animate-pulse'
           : 'border-blue-700'
         } ${isClickable ? 'cursor-pointer hover:brightness-110 transition-all' : ''} flex items-center justify-center select-none ${className}`}
       >

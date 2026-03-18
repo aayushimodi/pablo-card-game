@@ -10,7 +10,6 @@ interface PlayerGridProps {
   onCardClick?: (index: number) => void;
   onCardDoubleClick?: (index: number) => void;
   selectedCard?: number | null;
-  stackOpen?: boolean;
   revealAll?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -22,7 +21,6 @@ export default function PlayerGrid({
   onCardClick,
   onCardDoubleClick,
   selectedCard,
-  stackOpen,
   revealAll,
   size = 'sm',
 }: PlayerGridProps) {
@@ -39,7 +37,6 @@ export default function PlayerGrid({
           onClick={onCardClick ? () => onCardClick(index) : undefined}
           onDoubleClick={(isMyHand && onCardDoubleClick) ? () => onCardDoubleClick(index) : undefined}
           selected={selectedCard === index}
-          stackable={isMyHand && stackOpen && !!card}
           size={size}
         />
       ))}
