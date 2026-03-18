@@ -1,15 +1,15 @@
 'use client';
 
-import { GameState } from '@/lib/types';
-import { drawCard, discardDrawnCard, callPablo, endTurn } from '@/actions/game';
+import { GameState, RoomPlayer } from '@/lib/types';
+import { discardDrawnCard, callPablo, endTurn } from '@/actions/game';
 import { useState } from 'react';
-import CardComponent from './Card';
 
 interface ActionPanelProps {
   gameState: GameState;
   userId: string;
   isMyTurn: boolean;
   onAction: () => void;
+  players?: RoomPlayer[];
 }
 
 export default function ActionPanel({
@@ -17,20 +17,10 @@ export default function ActionPanel({
   userId,
   isMyTurn,
   onAction,
+  players,
 }: ActionPanelProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const topDiscard = gameState.discard_pile[gameState.discard_pile.length - 1];
-
-  const handleDraw = async () => {
-    setLoading(true);
-    setError('');
-    const result = await drawCard(gameState.id, userId);
-    if (result.error) setError(result.error);
-    onAction();
-    setLoading(false);
-  };
 
   const handleDiscard = async () => {
     setLoading(true);
@@ -60,73 +50,59 @@ export default function ActionPanel({
   };
 
   return (
-    <div className="bg-green-900 border-t border-green-700 p-4">
-      <div className="flex items-center gap-4 justify-between">
-        <div className="flex flex-col items-center">
-          <p className="text-green-400 text-xs mb-1">Discard</p>
-          <CardComponent card={topDiscard} faceUp={true} size="md" />
+    <div className="bg-green-900 border-t border-green-700 px-4 py-3 shrink-0">
+      <div className="flex items-center justify-between gap-4">
+
+        {/* Status text */}
+        <div className="flex-1 text-sm">
+          {!isMyTurn && (
+            <p className="text-green-400">Waiting for {players?.find?.((p: {user_id:string}) => p.user_id === gameState.players_order[gameState.current_player_index])?.display_name ?? 'other player'}...</p>
+          )}
+          {isMyTurn && gameState.turn_phase === 'await_draw' && (
+            <p className="text-yellow-400 font-bold">Your turn — tap the deck to draw</p>
+          )}
+          {isMyTurn && gameState.turn_phase === 'holding' && (
+            <p className="text-yellow-400 font-bold">Tap a card to swap, or discard below</p>
+          )}
+          {isMyTurn && gameState.turn_phase === 'post_action' && (
+            <p className="text-yellow-400 font-bold">Call Pablo or end turn</p>
+          )}
+          {isMyTurn && (gameState.turn_phase === 'special_7' || gameState.turn_phase === 'special_8_pick' || gameState.turn_phase === 'special_9_pick1' || gameState.turn_phase === 'special_9_pick2') && (
+            <p className="text-purple-400 font-bold">Use your special ability ✨</p>
+          )}
+          {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
         </div>
 
-        {gameState.drawn_card && isMyTurn && (
-          <div className="flex flex-col items-center">
-            <p className="text-yellow-400 text-xs mb-1">In Hand</p>
-            <CardComponent card={gameState.drawn_card} faceUp={true} size="md" />
-          </div>
+        {/* Drawn card + discard button */}
+        {isMyTurn && gameState.drawn_card && gameState.turn_phase === 'holding' && (
+          <button
+            onClick={handleDiscard}
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
+          >
+            {loading ? '...' : '🗑️ Discard'}
+          </button>
         )}
 
-        <div className="flex flex-col gap-2 flex-1 max-w-xs">
-          {error && <p className="text-red-400 text-xs">{error}</p>}
-
-          {!isMyTurn && (
-            <p className="text-green-400 text-sm text-center">Waiting for other player...</p>
-          )}
-
-          {isMyTurn && gameState.turn_phase === 'await_draw' && (
+        {/* Pablo + End Turn */}
+        {isMyTurn && gameState.turn_phase === 'post_action' && (
+          <div className="flex gap-2">
             <button
-              onClick={handleDraw}
+              onClick={handlePablo}
               disabled={loading}
               className="bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-600 text-green-900 font-bold py-2 px-4 rounded-lg text-sm transition-colors"
             >
-              {loading ? 'Drawing...' : '🃏 Draw Card'}
+              {loading ? '...' : '🎯 Pablo!'}
             </button>
-          )}
-
-          {isMyTurn && gameState.turn_phase === 'holding' && (
-            <>
-              <button
-                onClick={handleDiscard}
-                disabled={loading}
-                className="bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
-              >
-                {loading ? '...' : '🗑️ Discard Drawn'}
-              </button>
-              <p className="text-green-400 text-xs text-center">Or click a card in your grid to swap</p>
-            </>
-          )}
-
-          {isMyTurn && gameState.turn_phase === 'post_action' && (
-            <>
-              <button
-                onClick={handlePablo}
-                disabled={loading}
-                className="bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-600 text-green-900 font-bold py-2 px-4 rounded-lg text-sm transition-colors"
-              >
-                {loading ? '...' : '🎯 Call Pablo!'}
-              </button>
-              <button
-                onClick={handleEndTurn}
-                disabled={loading}
-                className="bg-green-700 hover:bg-green-600 disabled:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
-              >
-                {loading ? '...' : '✓ End Turn'}
-              </button>
-            </>
-          )}
-
-          {isMyTurn && (gameState.turn_phase === 'special_7' || gameState.turn_phase === 'special_8_pick' || gameState.turn_phase === 'special_9_pick1' || gameState.turn_phase === 'special_9_pick2') && (
-            <p className="text-yellow-400 text-sm text-center">Use your special ability...</p>
-          )}
-        </div>
+            <button
+              onClick={handleEndTurn}
+              disabled={loading}
+              className="bg-green-700 hover:bg-green-600 disabled:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
+            >
+              {loading ? '...' : '✓ End Turn'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
