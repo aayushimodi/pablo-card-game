@@ -27,6 +27,7 @@ export default function Home() {
         setError(result.error);
       } else {
         localStorage.setItem('pablo_user_id', result.userId);
+        localStorage.setItem('pablo_room_id', result.roomId);
         localStorage.setItem('pablo_display_name', displayName.trim());
         router.push(`/room/${result.roomCode}`);
       }

@@ -31,6 +31,7 @@ export default function RoomPageClient({ code }: RoomPageClientProps) {
   useEffect(() => {
     if (!loading && room && roomId !== room.id) {
       setRoomId(room.id);
+      localStorage.setItem('pablo_room_id', room.id);
     }
   }, [room, loading, roomId]);
 

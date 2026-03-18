@@ -20,14 +20,24 @@ export function useGameRealtime(roomId: string, roomCode: string) {
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (overrideRoomId?: string) => {
     const supabase = createClient();
-    
-    const [{ data: room }, { data: players }, { data: gameStates }, { data: hands }] = await Promise.all([
-      supabase.from('rooms').select('*').eq('code', roomCode).single(),
-      supabase.from('room_players').select('*').eq('room_id', roomId).order('seat_index'),
-      supabase.from('game_states').select('*').eq('room_id', roomId).single(),
-      supabase.from('player_hands').select('*').eq('room_id', roomId),
+    const effectiveRoomId = overrideRoomId || roomId;
+
+    // Fetch room by code first (always works without roomId)
+    const { data: room } = await supabase.from('rooms').select('*').eq('code', roomCode).single();
+    const resolvedRoomId = effectiveRoomId || room?.id || '';
+
+    if (!resolvedRoomId) {
+      setData({ room: room || null, players: [], gameState: null, playerHands: [] });
+      setLoading(false);
+      return;
+    }
+
+    const [{ data: players }, { data: gameStates }, { data: hands }] = await Promise.all([
+      supabase.from('room_players').select('*').eq('room_id', resolvedRoomId).order('seat_index'),
+      supabase.from('game_states').select('*').eq('room_id', resolvedRoomId).single(),
+      supabase.from('player_hands').select('*').eq('room_id', resolvedRoomId),
     ]);
     
     setData({
@@ -40,9 +50,9 @@ export function useGameRealtime(roomId: string, roomCode: string) {
   }, [roomId, roomCode]);
 
   useEffect(() => {
-    if (!roomId) return;
-    
     fetchAll();
+    
+    if (!roomId) return; // Can't subscribe without roomId, but initial fetch still runs above
     
     const supabase = createClient();
     

@@ -3,11 +3,11 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { generateRoomCode } from '@/lib/game-logic';
 
-export async function createRoom(displayName: string, userId: string): Promise<{ roomCode: string; userId: string; error?: string }> {
+export async function createRoom(displayName: string, userId: string): Promise<{ roomCode: string; roomId: string; userId: string; error?: string }> {
   const supabase = createServerClient();
   
   if (!userId) {
-    return { roomCode: '', userId: '', error: 'Missing user ID' };
+    return { roomCode: '', roomId: '', userId: '', error: 'Missing user ID' };
   }
   
   let code = '';
@@ -26,7 +26,7 @@ export async function createRoom(displayName: string, userId: string): Promise<{
     .single();
   
   if (roomError || !room) {
-    return { roomCode: '', userId: '', error: 'Failed to create room: ' + roomError?.message };
+    return { roomCode: '', roomId: '', userId: '', error: 'Failed to create room: ' + roomError?.message };
   }
   
   const { error: playerError } = await supabase
@@ -34,10 +34,10 @@ export async function createRoom(displayName: string, userId: string): Promise<{
     .insert({ room_id: room.id, user_id: userId, display_name: displayName });
   
   if (playerError) {
-    return { roomCode: '', userId: '', error: 'Failed to join room: ' + playerError?.message };
+    return { roomCode: '', roomId: '', userId: '', error: 'Failed to join room: ' + playerError?.message };
   }
   
-  return { roomCode: code, userId };
+  return { roomCode: code, roomId: room.id, userId };
 }
 
 export async function joinRoom(code: string, displayName: string, userId: string): Promise<{ roomId: string; userId: string; error?: string }> {
